@@ -2,29 +2,55 @@ pipeline {
     agent any
     environment {
         VIRTUAL_ENV = 'venv'
+        PYTHON_EXE = 'C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python312\\python.exe'
     }
     stages {
         stage('Setup') {
             steps {
                 script {
-                    if (!fileExists("${env.WORKSPACE}/${VIRTUAL_ENV}")) {
-                        bat "py -m venv ${VIRTUAL_ENV}"
+                    // Find Python executable
+                    def pythonExe = env.PYTHON_EXE
+                    
+                    // Verify Python exists, if not try common locations
+                    if (!fileExists(pythonExe)) {
+                        def commonPaths = [
+                            'C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python312\\python.exe',
+                            'C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python311\\python.exe',
+                            'C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python310\\python.exe',
+                            'C:\\Python312\\python.exe',
+                            'C:\\Python311\\python.exe',
+                            'C:\\Python310\\python.exe'
+                        ]
+                        for (path in commonPaths) {
+                            if (fileExists(path)) {
+                                pythonExe = path
+                                break
+                            }
+                        }
                     }
-                    bat "call ${VIRTUAL_ENV}\\Scripts\\activate.bat && python -m pip install -r requirements.txt"
+                    
+                    if (!fileExists(pythonExe)) {
+                        error("Python not found at ${pythonExe}. Please install Python or update PYTHON_EXE path.")
+                    }
+                    
+                    if (!fileExists("${env.WORKSPACE}/${VIRTUAL_ENV}")) {
+                        bat "\"${pythonExe}\" -m venv ${VIRTUAL_ENV}"
+                    }
+                    bat "call ${VIRTUAL_ENV}\\Scripts\\activate.bat && \"${pythonExe}\" -m pip install -r requirements.txt"
                 }
             }
         }
         stage('Lint') {
             steps {
                 script {
-                    bat "call ${VIRTUAL_ENV}\\Scripts\\activate.bat && python -m flake8 app.py"
+                    bat "${VIRTUAL_ENV}\\Scripts\\python.exe -m flake8 app.py"
                 }
             }
         }
         stage('Test') {
             steps {
                 script {
-                    bat "call ${VIRTUAL_ENV}\\Scripts\\activate.bat && python -m pytest"
+                    bat "${VIRTUAL_ENV}\\Scripts\\python.exe -m pytest"
                 }
             }
         }
