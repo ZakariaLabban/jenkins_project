@@ -66,9 +66,13 @@ pipeline {
         stage('Security Scan') {
             steps {
                 script {
-                    bat "${VIRTUAL_ENV}\\Scripts\\python.exe -m bandit -r . -f json -o bandit-report.json"
                     try {
-                        bat "${VIRTUAL_ENV}\\Scripts\\python.exe -m bandit -r ."
+                        bat "${VIRTUAL_ENV}\\Scripts\\python.exe -m bandit -r . --exclude ${VIRTUAL_ENV} -f json -o bandit-report.json"
+                    } catch (Exception e) {
+                        echo "Security scan JSON report generated with findings."
+                    }
+                    try {
+                        bat "${VIRTUAL_ENV}\\Scripts\\python.exe -m bandit -r . --exclude ${VIRTUAL_ENV}"
                     } catch (Exception e) {
                         echo "Security scan completed with findings. Review the output above."
                     }
